@@ -1,0 +1,392 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weather Dashboard</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #74ebd5, #9face6);
+    margin: 0;
+    padding: 20px;
+    min-height: 100vh;
+}
+
+.box {
+    background: white;
+    max-width: 850px;
+    margin: 30px auto;
+    padding: 25px;
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 5px 20px #777;
+}
+
+input {
+    width: 90%;
+    padding: 12px;
+    margin: 10px;
+    border: 1px solid #aaa;
+    border-radius: 8px;
+}
+
+button {
+    padding: 12px 20px;
+    margin: 8px;
+    border: none;
+    border-radius: 8px;
+    background: #4361ee;
+    color: white;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #3046bd;
+}
+
+.hidden {
+    display: none;
+}
+
+.weather {
+    background: #e3f2fd;
+    padding: 20px;
+    border-radius: 15px;
+    margin: 20px 0;
+}
+
+.temp {
+    font-size: 50px;
+    color: #4361ee;
+}
+
+.details, .forecast {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.card {
+    background: #f1f5ff;
+    padding: 15px;
+    border-radius: 12px;
+    flex: 1;
+    min-width: 120px;
+}
+
+.top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+#message {
+    color: #d00000;
+}
+</style>
+</head>
+
+<body>
+
+<!-- SIGN UP -->
+<div class="box" id="signupPage">
+    <h1>🌦 Weather Report</h1>
+    <h2>Create Account</h2>
+
+    <form onsubmit="signup(event)">
+        <input id="signupName" placeholder="Full Name" required>
+        <input id="signupEmail" type="email" placeholder="Email" required>
+        <input id="signupPassword" type="password"
+               placeholder="Password (minimum 6 characters)"
+               minlength="6" required>
+
+        <button type="submit">Sign Up</button>
+    </form>
+
+    <p id="signupMessage"></p>
+    <p>Already registered?</p>
+    <button onclick="showLogin()">Login</button>
+</div>
+
+<!-- LOGIN -->
+<div class="box hidden" id="loginPage">
+    <h1>🌦 Weather Report</h1>
+    <h2>Login</h2>
+
+    <form onsubmit="login(event)">
+        <input id="loginEmail" type="email"
+               placeholder="Email" required>
+
+        <input id="loginPassword" type="password"
+               placeholder="Password" required>
+
+        <button type="submit">Login</button>
+    </form>
+
+    <p id="loginMessage"></p>
+    <p>New user?</p>
+    <button onclick="showSignup()">Sign Up</button>
+</div>
+
+<!-- DASHBOARD -->
+<div class="box hidden" id="dashboard">
+
+    <div class="top">
+        <h2>🌤 Weather Dashboard</h2>
+        <button onclick="logout()">Logout</button>
+    </div>
+
+    <h3 id="welcome"></h3>
+    <p id="date"></p>
+
+    <form onsubmit="searchWeather(event)">
+        <input id="city" placeholder="Enter city name" required>
+        <button type="submit">Search Weather</button>
+    </form>
+
+    <p id="message"></p>
+
+    <div class="weather">
+        <h2 id="cityName">Weather Report</h2>
+        <div id="icon" style="font-size:50px">🌤️</div>
+        <h1 class="temp" id="temperature">--°C</h1>
+        <h3 id="condition">Search for a city</h3>
+    </div>
+
+    <div class="details">
+        <div class="card">
+            <h3>💧 Humidity</h3>
+            <p id="humidity">--%</p>
+        </div>
+
+        <div class="card">
+            <h3>💨 Wind Speed</h3>
+            <p id="wind">-- km/h</p>
+        </div>
+
+        <div class="card">
+            <h3>🌡 Feels Like</h3>
+            <p id="feels">--°C</p>
+        </div>
+    </div>
+
+    <h2>📅 Five-Day Forecast</h2>
+    <div class="forecast" id="forecast">
+        Search for a city to see the forecast.
+    </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+function showSignup() {
+    $("signupPage").classList.remove("hidden");
+    $("loginPage").classList.add("hidden");
+    $("dashboard").classList.add("hidden");
+}
+
+function showLogin() {
+    $("signupPage").classList.add("hidden");
+    $("loginPage").classList.remove("hidden");
+    $("dashboard").classList.add("hidden");
+}
+
+function signup(event) {
+    event.preventDefault();
+
+    let name = $("signupName").value.trim();
+    let email = $("signupEmail").value.trim().toLowerCase();
+    let password = $("signupPassword").value;
+
+    let users = JSON.parse(localStorage.getItem("users") || "[]");
+
+    if (users.some(u => u.email === email)) {
+        $("signupMessage").textContent = "Account already exists!";
+        return;
+    }
+
+    users.push({ name, email, password });
+    localStorage.setItem("users", JSON.stringify(users));
+
+    $("signupMessage").textContent =
+        "Registration successful! Please log in.";
+
+    $("signupName").value = "";
+    $("signupEmail").value = "";
+    $("signupPassword").value = "";
+}
+
+function login(event) {
+    event.preventDefault();
+
+    let email = $("loginEmail").value.trim().toLowerCase();
+    let password = $("loginPassword").value;
+
+    let users = JSON.parse(localStorage.getItem("users") || "[]");
+
+    let user = users.find(u =>
+        u.email === email && u.password === password
+    );
+
+    if (!user) {
+        $("loginMessage").textContent = "Invalid email or password!";
+        return;
+    }
+
+    sessionStorage.setItem("loggedIn", user.email);
+    openDashboard(user);
+}
+
+function openDashboard(user) {
+    $("signupPage").classList.add("hidden");
+    $("loginPage").classList.add("hidden");
+    $("dashboard").classList.remove("hidden");
+
+    $("welcome").textContent = "Welcome, " + user.name + "!";
+    $("date").textContent = new Date().toDateString();
+    $("loginMessage").textContent = "";
+
+    $("city").value = "Hyderabad";
+    loadWeather("Hyderabad");
+}
+
+function logout() {
+    sessionStorage.removeItem("loggedIn");
+    $("loginEmail").value = "";
+    $("loginPassword").value = "";
+    showLogin();
+}
+
+async function searchWeather(event) {
+    event.preventDefault();
+    await loadWeather($("city").value.trim());
+}
+
+function getCondition(code) {
+    if (code === 0) return "Clear Sky";
+    if ([1, 2, 3].includes(code)) return "Cloudy";
+    if ([45, 48].includes(code)) return "Foggy";
+    if ([51, 53, 55, 56, 57].includes(code)) return "Drizzle";
+    if ([61, 63, 65, 80, 81, 82].includes(code)) return "Rainy";
+    if ([71, 73, 75, 77, 85, 86].includes(code)) return "Snowy";
+    if ([95, 96, 99].includes(code)) return "Thunderstorm";
+    return "Variable Weather";
+}
+
+function getIcon(code) {
+    if (code === 0) return "☀️";
+    if ([1, 2].includes(code)) return "🌤️";
+    if (code === 3) return "☁️";
+    if ([45, 48].includes(code)) return "🌫️";
+    if ([51, 53, 55, 56, 57].includes(code)) return "🌦️";
+    if ([61, 63, 65, 80, 81, 82].includes(code)) return "🌧️";
+    if ([71, 73, 75, 77, 85, 86].includes(code)) return "❄️";
+    if ([95, 96, 99].includes(code)) return "⛈️";
+    return "🌡️";
+}
+
+async function loadWeather(city) {
+    $("message").textContent = "Loading weather...";
+    $("forecast").textContent = "";
+
+    try {
+        let geoResponse = await fetch(
+            "https://geocoding-api.open-meteo.com/v1/search?name=" +
+            encodeURIComponent(city) + "&count=1&language=en&format=json"
+        );
+
+        if (!geoResponse.ok) throw new Error("Location service unavailable.");
+
+        let geo = await geoResponse.json();
+
+        if (!geo.results || geo.results.length === 0) {
+            throw new Error("City not found. Try another city.");
+        }
+
+        let place = geo.results[0];
+
+        let url = "https://api.open-meteo.com/v1/forecast" +
+            "?latitude=" + place.latitude +
+            "&longitude=" + place.longitude +
+            "&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m" +
+            "&daily=weather_code,temperature_2m_max,temperature_2m_min" +
+            "&timezone=auto&forecast_days=5";
+
+        let response = await fetch(url);
+
+        if (!response.ok) throw new Error("Weather service unavailable.");
+
+        let data = await response.json();
+        let c = data.current;
+
+        $("cityName").textContent =
+            place.name + (place.country ? ", " + place.country : "");
+
+        $("temperature").textContent =
+            Math.round(c.temperature_2m) + "°C";
+
+        $("condition").textContent = getCondition(c.weather_code);
+        $("icon").textContent = getIcon(c.weather_code);
+        $("humidity").textContent = c.relative_humidity_2m + "%";
+        $("wind").textContent = c.wind_speed_10m + " km/h";
+        $("feels").textContent = Math.round(c.apparent_temperature) + "°C";
+
+        $("forecast").innerHTML = "";
+
+        data.daily.time.forEach((date, i) => {
+            let card = document.createElement("div");
+            card.className = "card";
+
+            let day = document.createElement("h3");
+            day.textContent = new Date(date + "T12:00:00")
+                .toLocaleDateString("en-US", { weekday: "short" });
+
+            let icon = document.createElement("p");
+            icon.style.fontSize = "28px";
+            icon.textContent = getIcon(data.daily.weather_code[i]);
+
+            let condition = document.createElement("p");
+            condition.textContent = getCondition(data.daily.weather_code[i]);
+
+            let temp = document.createElement("p");
+            temp.textContent =
+                Math.round(data.daily.temperature_2m_max[i]) + "° / " +
+                Math.round(data.daily.temperature_2m_min[i]) + "°C";
+
+            card.append(day, icon, condition, temp);
+            $("forecast").appendChild(card);
+        });
+
+        $("message").textContent = "Weather updated successfully!";
+
+    } catch (error) {
+        $("message").textContent = error.message ||
+            "Unable to load weather. Check your internet connection.";
+    }
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+    let email = sessionStorage.getItem("loggedIn");
+    let users = JSON.parse(localStorage.getItem("users") || "[]");
+    let user = users.find(u => u.email === email);
+
+    if (user) {
+        openDashboard(user);
+    } else {
+        showSignup();
+    }
+});
+</script>
+
+</body>
+</html>
+```
